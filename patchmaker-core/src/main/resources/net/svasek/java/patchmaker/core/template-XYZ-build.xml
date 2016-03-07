@@ -1,0 +1,290 @@
+<?xml version="1.0" ?>
+<project default="install" xmlns:antcontrib="antlib:net.sf.antcontrib">
+    <target name="_install" depends="checkVersion,fixBuildtimeEdition,lockFilesOnWindows">
+        <echoproperties destfile="${update.dir}/META-INF/.ant-env.txt"/>
+        <!-- update -->
+        <echo level="info" message=" "/>
+        <echo level="info" message="INFORMATION: THIS UPDATE ALTERS THE COMPANY INSTALLER CODE IN ORDER TO FIX CRITICAL DEFECTS."/>
+        <echo level="info" message=" "/>
+        <update-war dir="${install.location}" type="distribution" file="." excludes="lib/**, **/*.jar, **/*.zip, **/*.ear, **/*.war, **/*.sar, **/*.jar/**, **/*.zip/**, **/*.ear/*
+*, **/*.war/**, **/*.sar/**"/>
+    </target>
+
+    <target name="install" depends="init, backup, _install, fixChmodOnUnix, add-properties, alter.install, prepare-extensions"/>
+
+    <target name="lockFilesOnWindows">
+        <property name="filelocker.dir" location="${update.dir}${file.separator}META-INF${file.separator}lib"/>
+        <antcontrib:if>
+            <and>
+                <os family="windows"/>
+                <available file="${filelocker.dir}${file.separator}file-locker.jar" property="filelocker.present" type="file"/>
+            </and>
+            <antcontrib:then>
+                <delete file="${install.location}/stop.txt" quiet="true"/>
+                <echo>Locking some files mentioned in file ${filelocker.dir}${file.separator}file-locker.lst ...</echo>
+                <java classname="net.svasek.java.patchmaker.FileLocker" fork="true" spawn="true">
+                    <arg value="${install.location}"/>
+                    <arg value="${filelocker.dir}${file.separator}file-locker.lst"/>
+                    <classpath>
+                        <fileset dir="${filelocker.dir}" includes="file-locker.jar"/>
+                    </classpath>
+                </java>
+            </antcontrib:then>
+            <antcontrib:else>
+                <echo>Skipping filelocking.</echo>
+            </antcontrib:else>
+        </antcontrib:if>
+    </target>
+
+    <target name="fixChmodOnUnix">
+        <antcontrib:if>
+            <os family="unix"/>
+            <antcontrib:then>
+                <echo>Fixing file permitions of shell scripts.</echo>
+                <chmod dir="${install.location}" perm="ugo+rx" includes="**/*.sh"/>
+            </antcontrib:then>
+        </antcontrib:if>
+    </target>
+	
+	<!-- Additional step: perform something more after applying files on update archive to PRODUCT_HOME -->
+	<target name="alter.install">
+        <antcontrib:if>
+            <available file="${install.location}/conf/setup/steps/install/alter_install.xml" property="alter_install.present" type="file"/>
+            <antcontrib:then>
+                <ant antfile="alter_install.xml" dir="${install.location}/conf/setup/steps/install" inheritAll="true"/>
+            </antcontrib:then>
+        </antcontrib:if>
+	</target>
+
+    <target name="fixBuildtimeEdition" depends="init">
+        <antcontrib:propertyregex property="edition.name" input="${buildtime.string.previous}" regexp="(.*)-([0-9]{8}-[0-9]{4})(-installer)*-(.*)" select="\4" casesensitive="false"/>
+        <antcontrib:if>
+            <and>
+                <isset property="edition.name"/>
+                <available file="${update.dir}/distribution/conf/buildtime-${edition.name}"/>
+            </and>
+            <antcontrib:then>
+                <copy file="${update.dir}/distribution/conf/buildtime-${edition.name}"
+                      tofile="${update.dir}/distribution/conf/buildtime" overwrite="true"/>
+                <copy file="${update.dir}/distribution/conf/buildtime-${edition.name}"
+                      tofile="${update.dir}/final-product-distribution.ear/lib/pl-common-old.jar/com/company/utils/buildtime" overwrite="true"/>
+                <copy file="${update.dir}/distribution/conf/buildtime-${edition.name}"
+                      tofile="${update.dir}/distribution/lib/pl-common-old.jar/com/company/utils/buildtime" overwrite="true"/>
+                <copy file="${update.dir}/distribution/conf/buildtime-${edition.name}"
+                      tofile="${update.dir}/distribution/client/lib/pl-common-old.jar/com/company/utils/buildtime" overwrite="true"/>
+                <delete>
+                    <fileset dir="${update.dir}/distribution/conf" includes="buildtime-*"/>
+                </delete>
+            </antcontrib:then>
+        </antcontrib:if>
+    </target>
+
+    <target name="checkVersion" depends="init">
+        <condition property="buildtime.matches">
+            <matches pattern="${buildtime.pattern}" string="${buildtime.string.previous}"/>
+        </condition>
+        <fail message="This update is not applicable to your current product version (${buildtime.string.previous}). Applicable to ${buildtime.pattern}. Contact support for assistance. " unless="buildtime.matches"/>
+    </target>
+
+    <target name="add-properties">
+        <setRuntimeProperty>
+            <!--TODO: Added properties to file /distribution/conf/setup/configuration-properties.xml-->
+            <property name="shared.db.fulltextsearch.prefixpercentage" value="false"/>
+            <property name="shared.usernameValidation.enabled" value="true"/>
+            <property name="platform.integration.bac.defaultDataType" value="synthetic_data"/>
+            <property name="platform.usage.stats.cached.params" value="queryType,interval,operation,maxSize"/>
+            <property name="platform.publishing.ui.defaultServiceType" value="businessService"/>
+            <!--Added in HPS-3.20 cumulative update 2-->
+            <property name="platform.versioning.schema.initial" value="1.0"/>
+            <property name="platform.registry.sync.correctLocalChangesAfterImport" value="true"/>
+            <property name="platform.registry.sync.reuseExistingServices" value="true"/>
+            <property name="platform.registry.sync.defaultSecurity" value="1"/>
+            <property name="platform.registry.sync.synchronizationPolicy" value="1"/>
+            <property name="platform.registry.sync.ignoreIdenticalServices" value="false"/>
+            <property name="platform.registry.sync.findServiceQuery"
+                      value="&lt;find_service xmlns=&quot;urn:uddi-org:api_v3&quot;&gt;&lt;categoryBag&gt;&lt;keyedReference tModelKey=&quot;uddi:uddi.org:wsdl:types&quot; keyName=&quot;&quot; keyValue=&quot;service&quot;/&gt;&lt;/categoryBag&gt;&lt;/find_service&gt;"/>
+    	<!-- TODO: fix #64336 -->
+			<property name="execute.update.alter.schema" value="true" />
+			<property name="execute.reset.import.only" value="true" />
+    	<!-- end: fix #64336 -->
+        </setRuntimeProperty>
+        <!--TODO: dummy fix of #53891-->
+        <copy file="${install.location}/conf/setup/data/shared.conf.exportImport.classes.xml"
+              tofile="${install.location}/conf/setup/data/shared.conf.exportImport.classes.update.xml"
+              failonerror="false" overwrite="true" preservelastmodified="true"/>
+    </target>
+
+    <path id="ifcore.classpath">
+        <pathelement location="${install.location}/lib/if-core.jar"/>
+        <pathelement location="${basedir}/../lib/if-core.jar"/>
+    </path>
+
+    <taskdef resource="net/sf/antcontrib/antlib.xml" uri="antlib:net.sf.antcontrib">
+        <classpath>
+            <fileset dir="${install.location}/lib" includes="ant-contrib*.jar"/>
+        </classpath>
+    </taskdef>
+
+
+    <target name="init">
+        <condition property="skip.backup">
+            <available file="${update.dir}/backup"/>
+        </condition>
+        <!-- Save previous buildtime -->
+        <antcontrib:if>
+            <not>
+                <available file="${update.dir}/buildtime.previous"/>
+            </not>
+            <antcontrib:then>
+                <copy file="${install.location}/conf/buildtime" tofile="${update.dir}/buildtime.previous" failonerror="false"/>
+            </antcontrib:then>
+        </antcontrib:if>
+        <loadfile property="buildtime.string.previous" srcFile="${update.dir}/buildtime.previous"/>
+    </target>
+
+    <target name="prepare-extensions" if="prepare.extensions">
+        <touch>
+            <fileset dir="${install.location}/extensions"/>
+        </touch>
+        <ant antfile="build.xml" target="basicPrepare" dir="${install.location}/conf/setup/steps/extensions_environment_prepare" inheritAll="true"/>
+        <ant antfile="build.xml" target="validate" dir="${install.location}/conf/setup/steps/extensions_model" inheritAll="true"/>
+    </target>
+
+    <target name="backup" unless="skip.backup">
+        <!-- backup files from installation by those that are present in the update -->
+        <fileset id="distfiles" dir="${install.location}" excludes="temp/**, deploy/**, tmp/**, working/**, updates/**, log/**">
+            <present present="both" targetdir="${update.dir}/distribution"/>
+        </fileset>
+        <copy todir="${update.dir}/backup/distribution" preservelastmodified="true">
+            <fileset refid="distfiles"/>
+        </copy>
+
+        <!-- backup files from ear by dirs that are present in the update -->
+        <fileset id="earfiles" dir="${ear.dir}">
+            <present present="both" targetdir="${update.dir}/final-product-distribution.ear"/>
+        </fileset>
+        <copy todir="${update.dir}/backup/final-product-distribution.ear">
+            <fileset refid="earfiles"/>
+        </copy>
+    </target>
+
+    <target name="uninstall" depends="init">
+        <copy todir="${ear.dir}" overwrite="true" preservelastmodified="true">
+            <fileset dir="${update.dir}/backup/final-product-distribution.ear" excludes="**/update.jar"/>
+        </copy>
+        <copy todir="${install.location}" overwrite="true" preservelastmodified="true">
+            <fileset dir="${update.dir}/backup/distribution" excludes="**/update.jar **/updatetool.jar"/>
+        </copy>
+        <copy tofile="${install.location}/lib/updatetool.jar.update" overwrite="true" preservelastmodified="true"
+              file="${update.dir}/backup/distribution/lib/updatetool.jar"/>
+    </target>
+
+    <!-- update-war macro -->
+    <macrodef name="update-war">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default="NOT SET"/>
+        <attribute name="remove" default="NOT SET"/>
+        <attribute name="excludes" default="lib/**"/>
+        <sequential>
+            <copy todir="@{dir}/@{file}" overwrite="true">
+                <fileset dir="${update.dir}/@{type}/@{file}" excludes="@{excludes}"/>
+            </copy>
+            <delete verbose="true">
+                <filelist dir="@{dir}/@{file}" files="@{remove}"/>
+            </delete>
+        </sequential>
+    </macrodef>
+
+    <!-- update-jar macro -->
+    <macrodef name="update-jar">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default="NOT SET"/>
+        <attribute name="remove" default="NOT SET"/>
+        <attribute name="update" default=""/>
+        <sequential>
+            <property name="mytempdir" location="${update.dir}/tempjar"/>
+            <mkdir dir="${mytempdir}"/>
+            <unzip dest="${mytempdir}" src="@{dir}/@{file}"/>
+
+            <pathconvert pathsep="${path.separator}" property="@{file}.jars">
+                <fileset dir="${mytempdir}" includes="**/*.jar,**/*.war,**/*.zip">
+                    <present present="both" targetdir="${update.dir}/@{type}/@{file}"/>
+                </fileset>
+                <map from="${mytempdir}/" to=""/>
+            </pathconvert>
+
+            <!-- UNPACK included archives -->
+            <antcontrib:for param="fileinfile" list="${@{file}.jars}" delimiter="${path.separator}">
+                <sequential>
+                    <antcontrib:if>
+                        <not>
+                            <available file="${update.dir}/@{type}/@{file}/@{fileinfile}" type="file"/>
+                        </not>
+                        <antcontrib:then>
+                            <move file="${mytempdir}/@{fileinfile}" tofile="${mytempdir}/@{fileinfile}.old"/>
+                            <unzip dest="${mytempdir}/@{fileinfile}" src="${mytempdir}/@{fileinfile}.old"/>
+                            <delete file="${mytempdir}/@{fileinfile}.old" quiet="true"/>
+                        </antcontrib:then>
+                    </antcontrib:if>
+                </sequential>
+            </antcontrib:for>
+
+            <antcontrib:if>
+                <available file="${update.dir}/@{type}/@{file}" type="dir"/>
+                <antcontrib:then>
+                    <copy overwrite="true" todir="${mytempdir}">
+                        <fileset dir="${update.dir}/@{type}/@{file}"/>
+                    </copy>
+                </antcontrib:then>
+            </antcontrib:if>
+            <delete verbose="true">
+                <filelist dir="${mytempdir}" files="@{remove}"/>
+            </delete>
+
+            <!-- PACK included archives -->
+            <antcontrib:for param="fileinfile2" list="${@{file}.jars}" delimiter="${path.separator}">
+                <sequential>
+                    <antcontrib:if>
+                        <not>
+                            <available file="${update.dir}/@{type}/@{file}/@{fileinfile2}" type="file"/>
+                        </not>
+                        <antcontrib:then>
+                            <move file="${mytempdir}/@{fileinfile2}" tofile="${mytempdir}/@{fileinfile2}.new"/>
+                            <zip basedir="${mytempdir}/@{fileinfile2}.new" destfile="${mytempdir}/@{fileinfile2}"/>
+                            <delete dir="${mytempdir}/@{fileinfile2}.new" quiet="true"/>
+                        </antcontrib:then>
+                    </antcontrib:if>
+                </sequential>
+            </antcontrib:for>
+
+            <tempfile property="temp.file" prefix="tmp" destDir="${update.dir}" deleteonexit="true"/>
+            <zip destfile="${temp.file}" basedir="${update.dir}/tempjar" excludes="@{remove}"/>
+            <move tofile="@{dir}/@{file}@{update}" file="${temp.file}"/>
+            <delete dir="${update.dir}/tempjar" quiet="true"/>
+            <delete file="${temp.file}" quiet="true"/>
+        </sequential>
+    </macrodef>
+
+    <!-- insert-jar macro -->
+    <macrodef name="insert-jar">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default="NOT SET"/>
+        <sequential>
+            <copy file="${update.dir}/@{type}/@{file}" tofile="@{dir}/@{file}" overwrite="true"/>
+        </sequential>
+    </macrodef>
+
+    <!-- remove-jar macro -->
+    <macrodef name="remove-jar">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default="NOT SET"/>
+        <sequential>
+            <copy file="@{dir}/@{file}" tofile="${update.dir}/backup/@{type}/@{file}" preservelastmodified="true" failonerror="false"/>
+            <delete file="@{dir}/@{file}" quiet="true"/>
+        </sequential>
+    </macrodef>
+</project>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.company.public</groupId>
+  <artifactId>company-update</artifactId>
+  <version>2.12.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <parent>
+    <groupId>com.company.maven</groupId>
+    <artifactId>company-pom</artifactId>
+    <version>1.0.0-alpha-1</version>
+  </parent>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <name>${artifactId}:${version}</name>
+  <dependencies>
+    <dependency>
+      <groupId>com.company.public</groupId>
+      <artifactId>company</artifactId>
+      <version>2.12.0-rc-5</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <finalName>XYZ_00016</finalName>
+    <plugins>
+      <plugin>
+        <groupId>net.svasek.maven.plugins</groupId>
+        <artifactId>patchmaker-maven-plugin</artifactId>
+        <version>1-SNAPSHOT</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.company.product.distributions</groupId>
+            <artifactId>installer</artifactId>
+            <classifier>dist</classifier>
+            <version>2.12.0-SNAPSHOT</version>
+          </dependency>
+        </dependencies>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <goal>holmes</goal>
+              <goal>mkpatch</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <!-- holmes-only part -->
+          <svnUrl>http://your.subversion.repository/svn/reponame/productname/branches/XYZ-2.12-updates</svnUrl>
+          <svnUser>foo</svnUser>
+          <svnPass>bar</svnPass>
+          <ignoredBugs>
+            <param>00000</param>
+            <param>10123</param>
+            <param>20345</param>
+          </ignoredBugs>
+          <!-- mkpatch part -->
+          <oldArtifactRef>com.company.public:company:::jar</oldArtifactRef>
+          <newArtifactRef>com.company.product.distributions:installer::dist:jar</newArtifactRef>
+          <productsBuildtimeAplicableTo>
+            <param>XYZ-2.12-1405-installer</param>
+            <param>XYZ-2.12-1402-installer</param>
+          </productsBuildtimeAplicableTo>
+          <!--List of files needs to be locked. Applicable only on MS Windows OS family! -->
+          <filesToBeLocked>
+            <param>lib/pl-repository-old.jar</param>
+          </filesToBeLocked>
+          <!--WARNING: Must be without initial slash !!!-->
+          <distEarPath>distribution/deploy/final-product-distribution.ear</distEarPath>
+          <!--OPTIONAL: Directory which content should be copied into the update jar. Default is ${basedir}/src/update-->
+          <!--updateSrcDir>${basedir}/src/update</updateSrcDir-->
+          <!--OPTIONAL: Name of the previous update on which this update depends on-->
+          <!--updateDependsOn></updateDependsOn-->
+          <filesExcludeList>
+            <!--IGNORE GENERATED FILES-->
+            <param>distribution/extensions/(.*)/collection\.names\.properties</param>
+            <param>distribution/extensions/(.*)/document\.names\.properties</param>
+            <param>distribution/extensions/(.*)/encryptedPassword\.xsd</param>
+            <param>distribution/conf/db/init-dml\.xml</param>
+            <param>distribution/conf/setup/steps/rdbms_setup/.*</param>
+            <param>distribution/conf/setup/configuration-properties\.xml</param>
+            <param>distribution/conf/extensions/.*</param>
+            <param>distribution/conf/db/.*</param>
+            <param>distribution/conf/sdm/.*</param>
+            <param>distribution/conf/setup/backup/.*</param>
+            <param>distribution/conf/system/.*</param>
+            <param>(.*)sc-merged-sdm\.jar/(defaultValues\.xml|dbschema\.xml|uilabels\.properties|taxonomy\.xml)</param>
+            <param>(.*)sc-merged-sdm\.jar/(org|com|java)/.*</param>
+            <param>(.*)sc-merged-sdm\.jar/(collectionMapping\.xml|sdmConfig-ng\.xml|mapping\.xml|dozer-mapping\.xml)
+            </param>
+            <param>(.*)sc-merged-sdm\.jar/sdm/(sdmConfig\.xml|xsd/.*|sdm\.xml|sdm-runtime\.xml)</param>
+            <param>(.*)sc-merged-sdm-old\.jar</param>
+            <param>(.*)sc-merged-ui\.jar</param>
+            <!--IGNORE JSPs-->
+            <param>final-product-distribution\.ear/ui-web-war\.war/WEB-INF/ui/jsp/generated.*</param>
+          </filesExcludeList>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

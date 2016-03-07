@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.company.public</groupId>
+  <artifactId>company-update</artifactId>
+  <version>2.12.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <parent>
+    <groupId>com.company.maven</groupId>
+    <artifactId>company-pom</artifactId>
+    <version>1.0.0-alpha-1</version>
+  </parent>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <name>${artifactId}:${version}</name>
+  <dependencies>
+    <dependency>
+      <groupId>com.company.public</groupId>
+      <artifactId>company</artifactId>
+      <version>2.12.0-rc-5</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <finalName>XYZX-YZ</finalName>
+    <plugins>
+      <plugin>
+        <groupId>net.svasek.maven.plugins</groupId>
+        <artifactId>patchmaker-maven-plugin</artifactId>
+        <version>1-SNAPSHOT</version>
+        <dependencies>
+          <!--
+          <dependency>
+            <groupId>com.company.product.distributions</groupId>
+            <artifactId>installer</artifactId>
+            <classifier>dist</classifier>
+            <version>2.12.0-SNAPSHOT</version>
+          </dependency>
+          -->
+        </dependencies>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <!-- <goal>install</goal> -->
+              <goal>mkpatch</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <!-- mkpatch part -->
+          <!--<oldArtifactRef>com.company.public:company:::jar</oldArtifactRef>-->
+          <!--<newArtifactRef>com.company.product.distributions:installer::dist:jar</newArtifactRef>-->
+          <oldFile>xyzx-2.6-core-RELEASED.zip</oldFile>
+          <newFile>xyzx-2.12-core-dist.zip</newFile>
+          <productTimestampRegexp>.*</productTimestampRegexp>
+          <!--OPTIONAL: XYZ or XYZX, default is XYZ -->
+          <productFamily>XYZX</productFamily>
+          <!--WARNING: Must be without initial slash !!!-->
+          <distEarPath></distEarPath>
+          <!--OPTIONAL: Directory which content should be copied into the update jar. Default is ${basedir}/src/update-->
+          <!--updateSrcDir>${basedir}/src/update</updateSrcDir-->
+          <!--OPTIONAL: Name of the previous update on which this update depends on-->
+          <!--updateDependsOn></updateDependsOn-->
+          <filesExcludeList>
+            <!--IGNORE GENERATED FILES-->
+            <param>.*.java</param>
+          </filesExcludeList>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

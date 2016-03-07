@@ -1,0 +1,75 @@
+<?xml version="1.0" ?>
+<project name="example" default="makepatch" basedir="." 
+	xmlns="antlib:org.apache.tools.ant" 
+	xmlns:patchmaker="antlib:net.svasek.java.patchmaker.ant" >
+
+  <property name="old.archive" value="xyz-2.10-core-RELEASED.zip"/>
+  <property name="new.archive" value="xyz-2.12-core-dist.zip"/>
+  <property name="workdir" value="${basedir}/target-ant"/>
+  <property name="update.name" value="XYZ_X000X"/>
+  <property name="tempdir" value="${workdir}/${update.name}"/>
+  <property name="tempjar" value="${workdir}/tempjar"/>
+
+  <property name="patchmaker.version" value="1-SNAPSHOT"/>
+
+  <!-- Definition of makediff task from Patchmaker -->
+  <taskdef resource="net/svasek/java/patchmaker/ant/antlib.xml" uri="antlib:net.svasek.java.patchmaker.ant">
+    <classpath>
+      <pathelement location="c:/patchmaker/patchmaker-ant-plugin/target/patchmaker-ant-plugin-${patchmaker.version}.jar"/>
+    </classpath>
+  </taskdef>
+
+  <target name="makepatch" depends="repack.old,repack.new,make.diff.dir">
+    <echo>Done!</echo>
+  </target>
+
+  <target name="make.diff.dir">
+    <echo>Cleaning target directory</echo>
+    <delete dir="${workdir}"/>
+
+    <echo>Making DIFF ...</echo>
+    <!-- RUN! -->
+    <patchmaker:makediff oldfile="${old.archive}" newfile="${new.archive}" updateName="${update.name}" tempDir="${tempdir}" updateResources="${basedir}/update-resources">
+      <patternset>
+        <exclude name="conf/broker/mipServer.xml"/>
+        <exclude name=".*/WEB-INF/java/.*"/>
+      </patternset>
+    </patchmaker:makediff>
+  </target>
+
+  <!-- REPACK if needed -->
+  <target name="repack.old" if="repack.old">
+    <repack.dist file="${old.archive}"/>
+  </target>
+  <target name="repack.new" if="repack.new">
+    <repack.dist file="${new.archive}"/>
+  </target>
+
+  <macrodef name="repack.dist">
+    <attribute name="file" default="NOT SET"/>
+    <sequential>
+      <mkdir dir="${tempjar}"/>
+      <unzip dest="${tempjar}" src="@{file}"/>
+      <!--Pack some dirs to wars -->
+      <webapps2wars file="bse"/>
+      <webapps2wars file="bse_refresh"/>
+      <webapps2wars file="bsews"/>
+      <webapps2wars file="console"/>
+      <webapps2wars file="jmx"/>
+      <!--Finalize-->
+      <delete file="@{file}"/>
+      <zip destfile="@{file}" basedir="${tempjar}"/>
+      <delete dir="${tempjar}"/>
+    </sequential>
+  </macrodef>
+
+  <!-- webapps2wars macro -->
+  <macrodef name="webapps2wars">
+    <attribute name="file" default="NOT SET"/>
+    <sequential>
+      <jar destfile="${tempjar}/webapps/@{file}.war" basedir="${tempjar}/webapps/@{file}" update=""/>
+      <delete dir="${tempjar}/webapps/@{file}"/>
+    </sequential>
+  </macrodef>
+
+</project>

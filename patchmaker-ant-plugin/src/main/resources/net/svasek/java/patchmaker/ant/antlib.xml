@@ -1,0 +1,6 @@
+<antlib>
+  <!-- typedef the tasks that work for ant less than 1.6 -->
+  <taskdef resource="net/svasek/java/patchmaker/ant/MakeDiff.properties"/>
+  <!-- the new way -->
+  <taskdef name="makediff" classname="net.svasek.java.patchmaker.ant.MakeDiff"/>
+</antlib>

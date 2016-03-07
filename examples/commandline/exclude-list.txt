@@ -1,0 +1,20 @@
+# IGNORE GENERATED FILES
+distribution/extensions/(.*)/collection.names\.properties
+distribution/extensions/(.*)/document\.names\.properties
+distribution/extensions/(.*)/encryptedPassword\.xsd
+distribution/conf/db/init-dml\.xml
+distribution/conf/setup/steps/rdbms_setup/.*
+distribution/conf/setup/configuration-properties\.xml
+distribution/conf/extensions/.*
+distribution/conf/db/.*
+distribution/conf/sdm/.*
+distribution/conf/setup/backup/.*
+distribution/conf/system/.*
+(.*)sc-merged-sdm\.jar/(defaultValues\.xml|dbschema\.xml|uilabels\.properties|taxonomy\.xml)
+(.*)sc-merged-sdm\.jar/(org|com|java)/.*
+(.*)sc-merged-sdm\.jar/(collectionMapping\.xml|sdmConfig-ng\.xml|mapping\.xml|dozer-mapping\.xml)
+(.*)sc-merged-sdm\.jar/sdm/(sdmConfig\.xml|xsd/.*|sdm\.xml|sdm-runtime\.xml)
+(.*)sc-merged-sdm-old\.jar
+(.*)sc-merged-ui\.jar
+# IGNORE JSPs
+final-product-distribution.ear\.ear/ui-web-war\.war/WEB-INF/ui/jsp/generated.*

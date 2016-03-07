@@ -1,0 +1,212 @@
+<?xml version="1.0" ?>
+<project default="install" xmlns:antcontrib="antlib:net.sf.antcontrib">
+
+    <target name="_install">
+        <!-- update -->
+        <echo level="info" message=" "/>
+        <update-files dir="${install.location}" type="distribution" file="."
+                      excludes="**/META-INF/**, **/META-INF, **/*.jar, **/*.zip, **/*.ear, **/*.war, **/*.sar, **/*.jar/**, **/*.zip/**, **/*.ear/**, **/*.war/**, **/*.sar/**"/>
+    </target>
+
+    <target name="install" depends="ask.install, init, backup, _install, fixChmodOnUnix">
+        <echo message="IMPORTANT: Follow the manual steps in update documentation to complete the installation process!"/>
+    </target>
+
+    <target name="fixChmodOnUnix">
+        <antcontrib:if>
+            <os family="unix"/>
+            <antcontrib:then>
+                <echo>Fixing file permitions of shell scripts.</echo>
+                <chmod dir="${install.location}" perm="ugo+rx" includes="**/*.sh"/>
+            </antcontrib:then>
+        </antcontrib:if>
+    </target>
+
+    <!-- Definition of Ant-Contrib tasks -->
+    <taskdef resource="net/sf/antcontrib/antlib.xml" uri="antlib:net.sf.antcontrib">
+        <classpath>
+            <pathelement location="${update.dir}/META-INF/lib/ant-contrib.jar"/>
+        </classpath>
+    </taskdef>
+
+    <target name="ask.install" unless="dont.ask">
+        <input message="You are about to INSTALL update ${update.name}. Do you want to continue? (y/n): "
+               validargs="y,n" addproperty="do.install"/>
+        <condition property="do.abort">
+            <equals arg1="n" arg2="${do.install}"/>
+        </condition>
+        <fail if="do.abort" message="Uninstall aborted by user."/>
+    </target>
+
+    <target name="init" depends="check.java.version">
+        <property name="install.location" location="..${file.separator}.."/>
+        <property name="update.dir" location="${install.location}${file.separator}updates${file.separator}${update.name}"/>
+        <property name="backup.dir" location="${install.location}/update-backups/${update.name}"/>
+
+        <condition property="skip.backup">
+            <available file="${backup.dir}"/>
+        </condition>
+    </target>
+
+    <target name="check.java.version">
+        <fail message="You must use Java 1.5 or higher">
+            <condition>
+                <not>
+                    <or>
+                        <equals arg1="${ant.java.version}" arg2="1.5"/>
+                        <equals arg1="${ant.java.version}" arg2="1.6"/>
+                    </or>
+                </not>
+            </condition>
+        </fail>
+    </target>
+
+    <target name="backup" unless="skip.backup">
+        <!-- backup files from installation by those that are present in the update -->
+        <fileset id="distfiles" dir="${install.location}"
+                 excludes="MercuryDiagnosticsProbe/**, UninstallerData/**, tmp/**, updates/**, log/**">
+            <present present="both" targetdir="${update.dir}"/>
+        </fileset>
+        <copy todir="${backup.dir}" preservelastmodified="true">
+            <fileset refid="distfiles"/>
+        </copy>
+    </target>
+
+    <target name="ask.uninstall" unless="dont.ask">
+        <input message="You are about to UN-INSTALL update ${update.name}. Do you want to continue? (yes/no) [no]: "
+               validargs="y,n" defaultvalue="no" addproperty="do.uninstall"/>
+        <condition property="do.abort">
+            <equals arg1="no" arg2="${do.uninstall}"/>
+        </condition>
+        <fail if="do.abort" message="Uninstall aborted by user."/>
+    </target>
+
+    <target name="uninstall" depends="init, ask.uninstall">
+        <copy todir="${install.location}" overwrite="true" preservelastmodified="true">
+            <fileset dir="${backup.dir}"/>
+        </copy>
+        <echo message="IMPORTANT: Follow the manual steps in update documentation to complete the uninstallation process!"/>
+    </target>
+
+    <!-- update-jar macro -->
+    <macrodef name="update-jar">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default="NOT SET"/>
+        <attribute name="remove" default=""/>
+        <attribute name="update" default=""/>
+        <sequential>
+            <property name="mytempdir" location="${update.dir}/tempjar"/>
+            <mkdir dir="${mytempdir}"/>
+            <unzip dest="${mytempdir}" src="@{dir}/@{file}"/>
+
+            <pathconvert pathsep="${path.separator}" property="@{file}.jars">
+                <fileset dir="${mytempdir}" includes="**/*.jar,**/*.war,**/*.zip">
+                    <present present="both" targetdir="${update.dir}/@{type}/@{file}"/>
+                </fileset>
+                <map from="${mytempdir}/" to=""/>
+            </pathconvert>
+
+            <!-- UNPACK included archives -->
+            <antcontrib:for param="fileinfile" list="${@{file}.jars}" delimiter="${path.separator}">
+                <sequential>
+                    <antcontrib:if>
+                        <not>
+                            <available file="${update.dir}/@{type}/@{file}/@{fileinfile}" type="file"/>
+                        </not>
+                        <antcontrib:then>
+                            <move file="${mytempdir}/@{fileinfile}" tofile="${mytempdir}/@{fileinfile}.old"/>
+                            <unzip dest="${mytempdir}/@{fileinfile}" src="${mytempdir}/@{fileinfile}.old"/>
+                            <delete file="${mytempdir}/@{fileinfile}.old" quiet="true"/>
+                        </antcontrib:then>
+                    </antcontrib:if>
+                </sequential>
+            </antcontrib:for>
+
+            <antcontrib:if>
+                <available file="${update.dir}/@{type}/@{file}" type="dir"/>
+                <antcontrib:then>
+                    <copy overwrite="true" todir="${mytempdir}">
+                        <fileset dir="${update.dir}/@{type}/@{file}"/>
+                    </copy>
+                </antcontrib:then>
+            </antcontrib:if>
+            <delete verbose="true">
+                <filelist dir="${mytempdir}" files="@{remove}"/>
+            </delete>
+
+            <!-- PACK included archives -->
+            <antcontrib:for param="fileinfile2" list="${@{file}.jars}" delimiter="${path.separator}">
+                <sequential>
+                    <antcontrib:if>
+                        <not>
+                            <available file="${update.dir}/@{type}/@{file}/@{fileinfile2}" type="file"/>
+                        </not>
+                        <antcontrib:then>
+                            <move file="${mytempdir}/@{fileinfile2}" tofile="${mytempdir}/@{fileinfile2}.new"/>
+                            <zip basedir="${mytempdir}/@{fileinfile2}.new" destfile="${mytempdir}/@{fileinfile2}"/>
+                            <delete dir="${mytempdir}/@{fileinfile2}.new" quiet="true"/>
+                        </antcontrib:then>
+                    </antcontrib:if>
+                </sequential>
+            </antcontrib:for>
+
+            <tempfile property="temp.file" prefix="tmp" destDir="${update.dir}" deleteonexit="true"/>
+            <zip destfile="${temp.file}" basedir="${update.dir}/tempjar" excludes="@{remove}"/>
+            <move tofile="@{dir}/@{file}" file="${temp.file}"/>
+            <delete dir="${update.dir}/tempjar" quiet="true"/>
+            <delete file="${temp.file}" quiet="true"/>
+        </sequential>
+    </macrodef>
+
+    <!-- update-files macro -->
+    <macrodef name="update-files">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default=""/>
+        <attribute name="remove" default=""/>
+        <attribute name="excludes" default="lib/**"/>
+        <sequential>
+            <copy todir="@{dir}/@{file}" overwrite="true">
+                <fileset dir="${update.dir}/@{type}/@{file}" excludes="@{excludes}"/>
+            </copy>
+            <delete verbose="true">
+                <filelist dir="@{dir}/@{file}" files="@{remove}"/>
+            </delete>
+        </sequential>
+    </macrodef>
+
+    <!-- insert-jar macro -->
+    <macrodef name="insert-jar">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default="NOT SET"/>
+        <sequential>
+            <copy file="${update.dir}/@{type}/@{file}" tofile="@{dir}/@{file}" overwrite="true"/>
+        </sequential>
+    </macrodef>
+
+    <!-- remove-jar macro -->
+    <macrodef name="remove-jar">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default="NOT SET"/>
+        <sequential>
+            <copy file="@{dir}/@{file}" tofile="${backup.dir}/@{file}" preservelastmodified="true" failonerror="false"/>
+            <delete file="@{dir}/@{file}" quiet="true"/>
+        </sequential>
+    </macrodef>
+
+    <!-- update-war (dummy) macro for backward compatibility -->
+    <macrodef name="update-war">
+        <attribute name="dir" default="NOT SET"/>
+        <attribute name="type" default="NOT SET"/>
+        <attribute name="file" default="NOT SET"/>
+        <attribute name="remove" default="NOT SET"/>
+        <attribute name="excludes" default="NOT SET"/>
+        <attribute name="update" default=""/>
+        <sequential>
+            <update-jar dir="@{dir}" type="@{type}" file="@{file}" remove="@{remove}" upate="@{update}"/>
+        </sequential>
+    </macrodef>
+</project>
