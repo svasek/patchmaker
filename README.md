@@ -14,9 +14,13 @@ This tool can be used to make installable updates to your product.
 
 ## How it works
 * Input: Old and new released installer jar
-* Read both archives into the two Collections
+* Read both archives into the two Java Collections
 * Collections contains recursive tree of archives
 * Then comparing collection entries
 * Output from comparing method are 3 Lists: Changed, New and Removed files
-
+* Create META-INF/info.xml
+* Create build.xml (installation script)
+* Unzip all new and changed files from new distribution archive into the temp
+* Make update distribution archive
+* Make checksums of distribution archive
 
