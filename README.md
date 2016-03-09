@@ -24,3 +24,10 @@ This tool can be used to make installable updates to your product.
 * Make update distribution archive
 * Make checksums of distribution archive
 
+## Process of reading archives
+![Figure 1-1](resources/patchmaker-diagram1.gif "Figure 1-1")
+
+
+## Process of creating patches
+![Figure 1-2](resources/patchmaker-diagram2.gif "Figure 1-2")
+
