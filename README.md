@@ -1,7 +1,6 @@
-# Patchmaker tool 
+# Patchmaker tool [![Build Status](https://travis-ci.org/svasek/patchmaker.svg?branch=master)](https://travis-ci.org/svasek/patchmaker)
 
 This tool can be used to make installable updates to your product.
-[![Build Status](https://travis-ci.org/svasek/patchmaker.svg?branch=master)](https://travis-ci.org/svasek/patchmaker)
 
 ## Features 
 * Can be used as standalone commandline tool
