@@ -24,14 +24,14 @@ public abstract class AbstractPatchMakerMojo extends AbstractMojo {
     /**
      * The local repository where the artifacts are located
      *
-     * @parameter expression="localRepository"
+     * @parameter property="localRepository"
      */
     ArtifactRepository localRepository;
 
     /**
      * The remote repositories where artifacts are located
      *
-     * @parameter expression="project.remoteArtifactRepositories"
+     * @parameter property="project.remoteArtifactRepositories"
      */
     List<ArtifactRepository> remoteRepositories;
 
@@ -43,7 +43,7 @@ public abstract class AbstractPatchMakerMojo extends AbstractMojo {
     /**
      * The maven project.
      *
-     * @parameter expression="project"
+     * @parameter property="project"
      * @required
      * @readonly
      */
@@ -51,7 +51,7 @@ public abstract class AbstractPatchMakerMojo extends AbstractMojo {
 
     /**
      *
-     * @parameter expression="project.artifacts"
+     * @parameter property="project.artifacts"
      * @readonly
      */
     Set<Artifact> projectArtifacts;
@@ -59,7 +59,7 @@ public abstract class AbstractPatchMakerMojo extends AbstractMojo {
     /**
      * Dependency artifacts of this plugin.
      *
-     * @parameter expression="plugin.artifacts"
+     * @parameter property="plugin.artifacts"
      * @readonly
      */
     List<Artifact> pluginArtifacts;
