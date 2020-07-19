@@ -26,12 +26,12 @@ public class SvnHolmesMojo extends AbstractPatchMakerMojo {
     String svnUrl;
 
     /**
-     * @parameter expression="patchmaker.productSvnUser"
+     * @parameter property="patchmaker.productSvnUser"
      */
     String svnUser;
 
     /**
-     * @parameter expression="patchmaker.productSvnPass"
+     * @parameter property="patchmaker.productSvnPass"
      */
     String svnPass;
 
