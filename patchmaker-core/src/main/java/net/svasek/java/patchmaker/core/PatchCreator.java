@@ -38,19 +38,13 @@ public class PatchCreator {
 
     public void makeJarChecksums(File dstJar) {
         try {
-            final MessageDigest md5 = MessageDigest.getInstance("MD5");
-            final MessageDigest sha1 = MessageDigest.getInstance("SHA1");
-            StreamingMultiDigester.compute(dstJar, md5, sha1);
-            final byte[] md5sum = md5.digest();
-            final byte[] sha1sum = sha1.digest();
-            // Make MD5 checksum file
-            PrintWriter md5file = new PrintWriter(new FileWriter(dstJar.getAbsoluteFile() + ".md5"));
-            md5file.println(StreamingMultiDigester.getHex(md5sum) + "  " + dstJar.getName());
-            md5file.close();
-            // Make SHA1 checksum file
-            PrintWriter sha1file = new PrintWriter(new FileWriter(dstJar.getAbsoluteFile() + ".sha1"));
-            sha1file.println(StreamingMultiDigester.getHex(sha1sum) + "  " + dstJar.getName());
-            sha1file.close();
+            final MessageDigest sha = MessageDigest.getInstance("SHA-256");
+            StreamingMultiDigester.compute(dstJar, sha);
+            final byte[] shasum = sha.digest();
+            // Make SHA checksum file
+            PrintWriter shafile = new PrintWriter(new FileWriter(dstJar.getAbsoluteFile() + ".sha"));
+            shafile.println(StreamingMultiDigester.getHex(shasum) + "  " + dstJar.getName());
+            shafile.close();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (IOException e) {
